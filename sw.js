@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drivecontrol-v1';
+const CACHE_NAME = 'drivecontrol-v2';
 const ASSETS = ['./index.html', './manifest.json', './icon.png'];
 
 self.addEventListener('install', e => {
