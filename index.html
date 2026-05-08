@@ -757,6 +757,17 @@
       </div>
     </div>
 
+    <div class="card" id="card-encerrar-turno" style="display:none">
+      <div class="card-title">✅ Turno Completo</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:14px">KM inicial e final registrados. Ao encerrar, os dados serão salvos no histórico e você poderá iniciar um novo turno.</div>
+      <button class="btn btn-success btn-full" onclick="encerrarTurno()" style="background:var(--green);color:#000;font-size:15px;padding:14px">🏁 Encerrar Turno e Iniciar Novo</button>
+    </div>
+
+    <div class="card" id="card-historico-turnos" style="display:none">
+      <div class="card-title">📋 Histórico de Turnos</div>
+      <div id="historico-turnos-list"></div>
+    </div>
+
     <div class="card">
       <div class="card-title">Combustível do Dia</div>
       <div class="form-row triple">
@@ -1129,6 +1140,7 @@ let state = {
   ganhos: [],
   despesas: [],
   fixas: [],
+  historicoTurnos: [],
 };
 
 let config = {};
@@ -1139,7 +1151,10 @@ function saveState() {
 
 function loadState() {
   const s = localStorage.getItem('dc_state');
-  if (s) state = JSON.parse(s);
+  if (s) {
+    const parsed = JSON.parse(s);
+    state = { historicoTurnos: [], ...parsed };
+  }
 }
 
 function saveConfig() {
@@ -1224,8 +1239,10 @@ function renderKmUI() {
     document.getElementById('km-ini-res').textContent = ini.toLocaleString('pt-BR');
     document.getElementById('km-fim-res').textContent = fim.toLocaleString('pt-BR');
     document.getElementById('km-total-display').textContent = total > 0 ? fmtKm(total) : '—';
+    document.getElementById('card-encerrar-turno').style.display = 'block';
   } else {
     document.getElementById('card-km-resultado').style.display = 'none';
+    document.getElementById('card-encerrar-turno').style.display = 'none';
   }
 
   updateResumoTurno();
@@ -1623,6 +1640,110 @@ function updateDate() {
   document.getElementById('date-display').textContent = d.toLocaleDateString('pt-BR', opts);
 }
 
+function encerrarTurno() {
+  const ini = parseFloat(config.kmInicial) || 0;
+  const fim = parseFloat(config.kmFinal) || 0;
+  if (!ini || !fim) { alert('KM inicial e final são necessários para encerrar o turno.'); return; }
+
+  const totalGanhos = state.ganhos.reduce((a,b) => a + b.valor, 0);
+  const totalDesp = state.despesas.reduce((a,b) => a + b.valor, 0);
+  const kmTotal = fim > ini ? fim - ini : 0;
+  const now = new Date();
+  const dataFormatada = now.toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'numeric'});
+  const horaFormatada = now.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+
+  const turno = {
+    id: Date.now(),
+    data: dataFormatada,
+    hora: horaFormatada,
+    kmInicial: ini,
+    kmFinal: fim,
+    kmTotal: kmTotal,
+    kmInicialHora: config.kmInicialHora || '',
+    kmFinalHora: config.kmFinalHora || '',
+    ganhos: [...state.ganhos],
+    despesas: [...state.despesas],
+    totalGanhos: totalGanhos,
+    totalDesp: totalDesp,
+    lucro: totalGanhos - totalDesp,
+  };
+
+  if (!state.historicoTurnos) state.historicoTurnos = [];
+  state.historicoTurnos.unshift(turno);
+
+  // Resetar estado do turno (mantém fixas e config de combustível)
+  state.ganhos = [];
+  state.despesas = [];
+  saveState();
+
+  // Resetar KM
+  config.kmInicial = '';
+  config.kmFinal = '';
+  config.kmInicialSalvo = false;
+  config.kmFinalSalvo = false;
+  config.kmInicialHora = '';
+  config.kmFinalHora = '';
+  localStorage.setItem('dc_config', JSON.stringify(config));
+
+  // Limpar campos de input
+  document.getElementById('km-inicial').value = '';
+  document.getElementById('km-final').value = '';
+
+  renderKmUI();
+  renderGanhos();
+  renderDespesas();
+  renderHistoricoTurnos();
+  updateDashboard();
+
+  alert('✅ Turno encerrado e salvo no histórico!\n🚗 Você pode registrar o KM inicial do próximo turno.');
+}
+
+function renderHistoricoTurnos() {
+  if (!state.historicoTurnos) state.historicoTurnos = [];
+  const card = document.getElementById('card-historico-turnos');
+  const list = document.getElementById('historico-turnos-list');
+  if (!state.historicoTurnos.length) {
+    card.style.display = 'none';
+    return;
+  }
+  card.style.display = 'block';
+  list.innerHTML = '<div class="item-list">' + state.historicoTurnos.map(t => `
+    <div class="list-item" style="flex-direction:column;align-items:flex-start;gap:8px">
+      <div style="display:flex;justify-content:space-between;width:100%;align-items:center">
+        <div>
+          <div class="item-desc">📅 ${t.data} às ${t.hora}</div>
+          <div class="item-meta">
+            KM ${t.kmInicial.toLocaleString('pt-BR')} → ${t.kmFinal.toLocaleString('pt-BR')}
+            &nbsp;·&nbsp; <span style="color:var(--blue)">${fmtKm(t.kmTotal)}</span>
+          </div>
+        </div>
+        <button class="btn btn-danger" onclick="removerTurno(${t.id})" style="padding:5px 10px;font-size:11px">✕</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;width:100%">
+        <div style="text-align:center;background:var(--surface);border-radius:8px;padding:8px">
+          <div style="font-size:10px;color:var(--muted)">Ganhos</div>
+          <div style="font-family:var(--font-mono);font-size:13px;color:var(--green)">${fmt(t.totalGanhos)}</div>
+        </div>
+        <div style="text-align:center;background:var(--surface);border-radius:8px;padding:8px">
+          <div style="font-size:10px;color:var(--muted)">Despesas</div>
+          <div style="font-family:var(--font-mono);font-size:13px;color:var(--red)">${fmt(t.totalDesp)}</div>
+        </div>
+        <div style="text-align:center;background:var(--surface);border-radius:8px;padding:8px">
+          <div style="font-size:10px;color:var(--muted)">Lucro</div>
+          <div style="font-family:var(--font-mono);font-size:13px;color:${t.lucro>=0?'var(--accent)':'var(--red)'}">${fmt(t.lucro)}</div>
+        </div>
+      </div>
+    </div>
+  `).join('') + '</div>';
+}
+
+function removerTurno(id) {
+  if (!confirm('Remover este turno do histórico?')) return;
+  state.historicoTurnos = state.historicoTurnos.filter(t => t.id !== id);
+  saveState();
+  renderHistoricoTurnos();
+}
+
 loadState();
 loadConfig();
 updateDate();
@@ -1630,6 +1751,7 @@ calcCombustivel();
 renderGanhos();
 renderDespesas();
 renderFixas();
+renderHistoricoTurnos();
 updateDashboard();
 </script>
 </body>
