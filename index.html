@@ -1287,6 +1287,19 @@
 </div>
 
 <script>
+// ============ FORCE SW UPDATE ============
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(regs => {
+    regs.forEach(reg => {
+      reg.update();
+      if (reg.waiting) reg.waiting.postMessage({type:'SKIP_WAITING'});
+    });
+  });
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    window.location.reload();
+  });
+}
+
 // ============ PWA INSTALL ============
 let deferredPrompt = null;
 const installBtn = document.getElementById('install-btn');
