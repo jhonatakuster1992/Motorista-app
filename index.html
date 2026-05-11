@@ -465,6 +465,150 @@
   .badge-yellow { background: rgba(240,192,64,.15); color: var(--accent); }
   .badge-blue { background: rgba(77,166,255,.15); color: var(--blue); }
 
+  /* CHART SEMANA */
+  .semana-total {
+    text-align: center;
+    margin-bottom: 16px;
+  }
+  .semana-total-label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  .semana-total-val {
+    font-family: var(--font-mono);
+    font-size: 30px;
+    font-weight: 600;
+    color: var(--green);
+  }
+  .semana-total-val.filtrado {
+    color: var(--accent);
+    font-size: 24px;
+  }
+  .semana-dia-label {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+  .chart-bars {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 6px;
+    height: 130px;
+    padding: 0 4px;
+    margin-bottom: 8px;
+  }
+  .chart-bar-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+    cursor: pointer;
+    gap: 4px;
+    justify-content: flex-end;
+  }
+  .chart-bar-wrap {
+    width: 100%;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    flex: 1;
+  }
+  .chart-bar {
+    width: 80%;
+    border-radius: 5px 5px 0 0;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    transition: all .3s ease;
+    min-height: 4px;
+    position: relative;
+  }
+  .chart-bar.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    box-shadow: 0 0 10px rgba(240,192,64,.3);
+  }
+  .chart-bar.has-data {
+    background: linear-gradient(180deg, var(--green) 0%, rgba(61,232,138,.5) 100%);
+    border-color: var(--green);
+  }
+  .chart-bar.has-data.active {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .chart-bar-day {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .chart-bar-col.active .chart-bar-day {
+    color: var(--accent);
+  }
+  .chart-bar-val {
+    font-size: 9px;
+    font-family: var(--font-mono);
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .chart-bar-col.active .chart-bar-val {
+    color: var(--accent);
+  }
+
+  /* MODAL EDITAR GANHO DIA */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.7);
+    z-index: 200;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .modal-overlay.open {
+    display: flex;
+  }
+  .modal-sheet {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px 16px 0 0;
+    padding: 20px;
+    width: 100%;
+    max-width: 600px;
+    max-height: 85vh;
+    overflow-y: auto;
+    animation: slideUp .25s ease;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .modal-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .modal-close {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 8px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+
   /* EMPTY STATE */
   .empty-state {
     text-align: center;
@@ -807,6 +951,26 @@
 
   <!-- GANHOS -->
   <div class="page" id="page-ganhos">
+
+    <!-- GRÁFICO SEMANAL -->
+    <div class="card">
+      <div class="card-title">📊 Ganhos da Semana</div>
+      <div class="semana-total">
+        <div class="semana-total-label" id="chart-label">Total da Semana</div>
+        <div class="semana-total-val" id="chart-total-val">R$ 0,00</div>
+        <div class="semana-dia-label" id="chart-dia-label" style="display:none"></div>
+      </div>
+      <div class="chart-bars" id="chart-bars"></div>
+      <div style="text-align:center;margin-top:4px">
+        <button class="btn" id="chart-clear-btn" onclick="chartLimparFiltro()" style="display:none;background:var(--surface2);border:1px solid var(--border);color:var(--muted);padding:6px 14px;font-size:12px">✕ Ver semana completa</button>
+      </div>
+      <hr class="divider">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div style="font-size:12px;color:var(--muted)">Editar ganhos por data</div>
+        <button class="btn btn-primary" onclick="abrirModalEditar()" style="padding:7px 14px;font-size:12px">📅 Editar por data</button>
+      </div>
+    </div>
+
     <div class="card">
       <div class="card-title">Registrar Ganho</div>
       <div class="form-row">
@@ -1080,6 +1244,47 @@
   </div>
 
 </main>
+
+<!-- MODAL EDITAR GANHO POR DATA -->
+<div class="modal-overlay" id="modal-editar" onclick="fecharModalSeOverlay(event)">
+  <div class="modal-sheet">
+    <div class="modal-header">
+      <div class="modal-title">📅 Editar Ganho por Data</div>
+      <button class="modal-close" onclick="fecharModal()">✕ Fechar</button>
+    </div>
+    <div class="form-group" style="margin-bottom:14px">
+      <label>Selecione a data</label>
+      <input type="date" id="modal-data" onchange="carregarGanhosDia()">
+    </div>
+    <div id="modal-ganhos-dia" style="margin-bottom:14px"></div>
+    <hr class="divider">
+    <div style="font-size:12px;color:var(--muted);margin-bottom:10px;font-weight:600">➕ Adicionar ganho nesta data</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Valor (R$)</label>
+        <input type="number" id="modal-g-valor" placeholder="Ex: 18.50" step="0.01">
+      </div>
+      <div class="form-group">
+        <label>Plataforma</label>
+        <select id="modal-g-plataforma">
+          <option value="Uber">Uber</option>
+          <option value="99">99</option>
+          <option value="InDriver">InDriver</option>
+          <option value="Cabify">Cabify</option>
+          <option value="Gorjeta">Gorjeta</option>
+          <option value="Outro">Outro</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row single">
+      <div class="form-group">
+        <label>Descrição (opcional)</label>
+        <input type="text" id="modal-g-desc" placeholder="Ex: Corrida centro-aeroporto">
+      </div>
+    </div>
+    <button class="btn btn-success btn-full" onclick="addGanhoData()">＋ Adicionar nesta data</button>
+  </div>
+</div>
 
 <script>
 // ============ PWA INSTALL ============
@@ -1375,19 +1580,22 @@ function addGanho() {
   const desc = document.getElementById('g-desc').value.trim();
   const km = parseFloat(document.getElementById('g-km').value) || 0;
   if (!val || val <= 0) { alert('Informe um valor válido.'); return; }
+  const now = new Date();
   state.ganhos.push({
     id: Date.now(),
     valor: val,
     plataforma: plat,
     desc: desc || plat,
     km: km,
-    hora: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'})
+    hora: now.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'}),
+    data: now.toISOString().slice(0,10),
   });
   document.getElementById('g-valor').value = '';
   document.getElementById('g-desc').value = '';
   document.getElementById('g-km').value = '';
   saveState();
   renderGanhos();
+  renderGraficoSemana();
   updateDashboard();
 }
 
@@ -1395,6 +1603,7 @@ function removeGanho(id) {
   state.ganhos = state.ganhos.filter(g => g.id !== id);
   saveState();
   renderGanhos();
+  renderGraficoSemana();
   updateDashboard();
 }
 
@@ -1405,6 +1614,7 @@ function renderGanhos() {
   document.getElementById('ganhos-total').textContent = fmt(total);
   if (!state.ganhos.length) {
     list.innerHTML = '<div class="empty-state"><div class="icon">💸</div>Nenhum ganho registrado</div>';
+    renderGraficoSemana();
     return;
   }
   const platColors = {'Uber':'badge-blue','99':'badge-yellow','InDriver':'badge-green','Cabify':'badge-blue','Gorjeta':'badge-green','Outro':'badge-yellow'};
@@ -1412,7 +1622,7 @@ function renderGanhos() {
     <div class="list-item">
       <div class="item-info">
         <div class="item-desc">${g.desc} <span class="badge ${platColors[g.plataforma]||'badge-yellow'}">${g.plataforma}</span></div>
-        <div class="item-meta">${g.hora}${g.km > 0 ? ' · ' + g.km + ' km' : ''}</div>
+        <div class="item-meta">${g.hora}${g.km > 0 ? ' · ' + g.km + ' km' : ''}${g.data ? ' · ' + g.data.split('-').reverse().join('/') : ''}</div>
       </div>
       <div class="item-amount gain">${fmt(g.valor)}</div>
       <div class="item-actions">
@@ -1420,6 +1630,7 @@ function renderGanhos() {
       </div>
     </div>
   `).join('') + '</div>';
+  renderGraficoSemana();
 }
 
 function addDespesa() {
@@ -1693,6 +1904,7 @@ function encerrarTurno() {
   renderGanhos();
   renderDespesas();
   renderHistoricoTurnos();
+  renderGraficoSemana();
   updateDashboard();
 
   alert('✅ Turno encerrado e salvo no histórico!\n🚗 Você pode registrar o KM inicial do próximo turno.');
@@ -1744,6 +1956,173 @@ function removerTurno(id) {
   renderHistoricoTurnos();
 }
 
+// ============ GRÁFICO SEMANAL ============
+let chartDiaFiltro = null; // null = semana toda, 'YYYY-MM-DD' = dia específico
+
+function getSemanaAtual() {
+  const hoje = new Date();
+  const diaSemana = hoje.getDay(); // 0=dom
+  // Segunda como início da semana
+  const seg = new Date(hoje);
+  seg.setDate(hoje.getDate() - ((diaSemana === 0 ? 7 : diaSemana) - 1));
+  const dias = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(seg);
+    d.setDate(seg.getDate() + i);
+    dias.push(d.toISOString().slice(0,10));
+  }
+  return dias;
+}
+
+function getGanhosPorDia(data) {
+  // Inclui também ganhos dos turnos históricos que tenham data
+  const todos = [
+    ...state.ganhos,
+    ...(state.historicoTurnos || []).flatMap(t => t.ganhos || [])
+  ];
+  return todos.filter(g => g.data === data).reduce((a,b) => a + b.valor, 0);
+}
+
+function renderGraficoSemana() {
+  const dias = getSemanaAtual();
+  const nomes = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+  const valores = dias.map(d => getGanhosPorDia(d));
+  const maxVal = Math.max(...valores, 1);
+
+  const totalSemana = valores.reduce((a,b) => a+b, 0);
+  const totalFiltrado = chartDiaFiltro ? getGanhosPorDia(chartDiaFiltro) : null;
+
+  const totalEl = document.getElementById('chart-total-val');
+  const labelEl = document.getElementById('chart-label');
+  const diaLabelEl = document.getElementById('chart-dia-label');
+  const clearBtn = document.getElementById('chart-clear-btn');
+
+  if (chartDiaFiltro) {
+    totalEl.textContent = fmt(totalFiltrado);
+    totalEl.className = 'semana-total-val filtrado';
+    const idx = dias.indexOf(chartDiaFiltro);
+    const nomeCompleto = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
+    labelEl.textContent = idx >= 0 ? nomeCompleto[idx] : chartDiaFiltro.split('-').reverse().join('/');
+    diaLabelEl.textContent = chartDiaFiltro.split('-').reverse().join('/');
+    diaLabelEl.style.display = 'block';
+    clearBtn.style.display = 'inline-flex';
+  } else {
+    totalEl.textContent = fmt(totalSemana);
+    totalEl.className = 'semana-total-val';
+    labelEl.textContent = 'Total da Semana';
+    diaLabelEl.style.display = 'none';
+    clearBtn.style.display = 'none';
+  }
+
+  const barsEl = document.getElementById('chart-bars');
+  barsEl.innerHTML = dias.map((d, i) => {
+    const pct = Math.max((valores[i] / maxVal) * 100, 3);
+    const isActive = chartDiaFiltro === d;
+    const hasData = valores[i] > 0;
+    const valStr = valores[i] > 0 ? (valores[i] >= 1000 ? 'R$' + (valores[i]/1000).toFixed(1)+'k' : fmt(valores[i]).replace('R$ ','R$')) : '';
+    return `<div class="chart-bar-col${isActive?' active':''}" onclick="chartFiltrarDia('${d}')">
+      <div class="chart-bar-wrap">
+        <div class="chart-bar${hasData?' has-data':''}${isActive?' active':''}" style="height:${pct}%"></div>
+      </div>
+      <div class="chart-bar-day">${nomes[i]}</div>
+      <div class="chart-bar-val">${valStr}</div>
+    </div>`;
+  }).join('');
+}
+
+function chartFiltrarDia(data) {
+  if (chartDiaFiltro === data) {
+    chartDiaFiltro = null;
+  } else {
+    chartDiaFiltro = data;
+  }
+  renderGraficoSemana();
+}
+
+function chartLimparFiltro() {
+  chartDiaFiltro = null;
+  renderGraficoSemana();
+}
+
+// ============ MODAL EDITAR GANHO POR DATA ============
+function abrirModalEditar() {
+  const hoje = new Date().toISOString().slice(0,10);
+  document.getElementById('modal-data').value = hoje;
+  document.getElementById('modal-editar').classList.add('open');
+  carregarGanhosDia();
+}
+
+function fecharModal() {
+  document.getElementById('modal-editar').classList.remove('open');
+}
+
+function fecharModalSeOverlay(e) {
+  if (e.target === document.getElementById('modal-editar')) fecharModal();
+}
+
+function carregarGanhosDia() {
+  const data = document.getElementById('modal-data').value;
+  if (!data) return;
+  const el = document.getElementById('modal-ganhos-dia');
+  const platColors = {'Uber':'badge-blue','99':'badge-yellow','InDriver':'badge-green','Cabify':'badge-blue','Gorjeta':'badge-green','Outro':'badge-yellow'};
+  const ganhosDia = state.ganhos.filter(g => g.data === data);
+  if (!ganhosDia.length) {
+    el.innerHTML = '<div class="empty-state" style="padding:14px"><div class="icon">💸</div>Nenhum ganho neste dia</div>';
+    return;
+  }
+  const total = ganhosDia.reduce((a,b) => a+b.valor, 0);
+  el.innerHTML = `
+    <div style="font-size:12px;color:var(--muted);margin-bottom:8px">
+      ${ganhosDia.length} ganho(s) · Total: <span style="color:var(--green);font-family:var(--font-mono)">${fmt(total)}</span>
+    </div>
+    <div class="item-list">
+      ${ganhosDia.map(g => `
+        <div class="list-item">
+          <div class="item-info">
+            <div class="item-desc" style="font-size:13px">${g.desc} <span class="badge ${platColors[g.plataforma]||'badge-yellow'}">${g.plataforma}</span></div>
+            <div class="item-meta">${g.hora || ''}</div>
+          </div>
+          <div class="item-amount gain" style="font-size:13px">${fmt(g.valor)}</div>
+          <div class="item-actions">
+            <button class="btn btn-danger" onclick="removeGanhoModal(${g.id})" style="padding:4px 8px;font-size:11px">✕</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>`;
+}
+
+function removeGanhoModal(id) {
+  state.ganhos = state.ganhos.filter(g => g.id !== id);
+  saveState();
+  carregarGanhosDia();
+  renderGanhos();
+  updateDashboard();
+}
+
+function addGanhoData() {
+  const data = document.getElementById('modal-data').value;
+  const val = parseFloat(document.getElementById('modal-g-valor').value);
+  const plat = document.getElementById('modal-g-plataforma').value;
+  const desc = document.getElementById('modal-g-desc').value.trim();
+  if (!data) { alert('Selecione uma data.'); return; }
+  if (!val || val <= 0) { alert('Informe um valor válido.'); return; }
+  state.ganhos.push({
+    id: Date.now(),
+    valor: val,
+    plataforma: plat,
+    desc: desc || plat,
+    km: 0,
+    hora: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'}),
+    data: data,
+  });
+  document.getElementById('modal-g-valor').value = '';
+  document.getElementById('modal-g-desc').value = '';
+  saveState();
+  carregarGanhosDia();
+  renderGanhos();
+  updateDashboard();
+}
+
 loadState();
 loadConfig();
 updateDate();
@@ -1752,6 +2131,7 @@ renderGanhos();
 renderDespesas();
 renderFixas();
 renderHistoricoTurnos();
+renderGraficoSemana();
 updateDashboard();
 </script>
 </body>
